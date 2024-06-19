@@ -75,15 +75,15 @@ app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, Render ren
       atBody: () =>
         new[]
         {
-          BuildForm(new PageInput(page!.Id, pageName, page.Content, null), path: $"{pageName}", antiForgery: antiForgery.GetAndStoreTokens(context)),
-          RenderPageAttachmentsForEdit(page!, antiForgery.GetAndStoreTokens(context))
+          BuildForm(new PageInput(page.Id, pageName, page.Content, null), path: $"{pageName}", antiForgery: antiForgery.GetAndStoreTokens(context)),
+          RenderPageAttachmentsForEdit(page, antiForgery.GetAndStoreTokens(context))
         },
       atSidePanel: () =>
       {
           var list = new List<string>();
           // Do not show delete button on home page
-          if (!pageName!.ToString().Equals(HomePageName, StringComparison.Ordinal))
-              list.Add(RenderDeletePageButton(page!, antiForgery: antiForgery.GetAndStoreTokens(context)));
+          if (!pageName.Equals(HomePageName, StringComparison.Ordinal))
+              list.Add(RenderDeletePageButton(page, antiForgery: antiForgery.GetAndStoreTokens(context)));
 
           list.Add(Br.ToHtmlString());
           list.AddRange(AllPagesForEditing(wiki));
@@ -98,7 +98,7 @@ app.MapGet("/attachment", (string fileId, Wiki wiki) =>
     if (file is null)
       return Results.NotFound();
 
-    app!.Logger.LogInformation("Attachment " + file.Value.meta.Id + " - " + file.Value.meta.Filename);
+    app.Logger.LogInformation("Attachment " + file.Value.meta.Id + " - " + file.Value.meta.Filename);
 
     return Results.File(file.Value.file, file.Value.meta.MimeType);
 });
@@ -106,7 +106,6 @@ app.MapGet("/attachment", (string fileId, Wiki wiki) =>
 // Load a wiki page
 app.MapGet("/{pageName}", (string pageName, HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
 {
-    pageName = pageName ?? "";
 
     Page? page = wiki.GetPage(pageName);
 
@@ -117,7 +116,7 @@ app.MapGet("/{pageName}", (string pageName, HttpContext context, Wiki wiki, Rend
           {
             RenderPageContent(page),
             RenderPageAttachments(page),
-            Div.Class("last-modified").Append("Last modified: " + page!.LastModifiedUtc.ToString(DisplayDateFormat)).ToHtmlString(),
+            Div.Class("last-modified").Append("Last modified: " + page.LastModifiedUtc.ToString(DisplayDateFormat)).ToHtmlString(),
             A.Href($"/edit?pageName={pageName}").Append("Edit").ToHtmlString()
           },
           atSidePanel: () => AllPages(wiki)
@@ -307,7 +306,7 @@ static string RenderPageAttachmentsForEdit(Page page, AntiforgeryTokenSet antiFo
     static HtmlTag CreateDelete(int pageId, string attachmentId, AntiforgeryTokenSet antiForgery)
     {
         var antiForgeryField = Input.Hidden.Name(antiForgery.FormFieldName).Value(antiForgery.RequestToken!);
-        var id = Input.Hidden.Name("Id").Value(attachmentId.ToString());
+        var id = Input.Hidden.Name("Id").Value(attachmentId);
         var name = Input.Hidden.Name("PageId").Value(pageId.ToString());
 
         var submit = Button.Class("uk-button uk-button-danger uk-button-small").Append(Span.Attribute("uk-icon", "icon: close; ratio: .75;"));
@@ -351,7 +350,7 @@ static string RenderPageAttachments(Page page)
 // Build the wiki input form 
 static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiForgery, ModelStateDictionary? modelState = null)
 {
-    bool IsFieldOK(string key) => modelState!.ContainsKey(key) && modelState[key]!.ValidationState == ModelValidationState.Invalid;
+    bool IsFieldOK(string key) => modelState.ContainsKey(key) && modelState[key]!.ValidationState == ModelValidationState.Invalid;
 
     var antiForgeryField = Input.Hidden.Name(antiForgery.FormFieldName).Value(antiForgery.RequestToken!);
 
@@ -605,7 +604,7 @@ class Wiki
             Page? existingPage = input.Id.HasValue ? coll.FindOne(x => x.Id == input.Id) : null;
 
             var sanitizer = new HtmlSanitizer();
-            var properName = input.Name.ToString().Trim().Replace(' ', '-').ToLower();
+            var properName = input.Name.Trim().Replace(' ', '-').ToLower();
 
             Attachment? attachment = null;
             if (!string.IsNullOrWhiteSpace(input.Attachment?.FileName))
