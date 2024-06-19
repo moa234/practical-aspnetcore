@@ -28,6 +28,7 @@ builder.Services
 builder.Logging.AddConsole().SetMinimumLevel(LogLevel.Warning);
 
 var app = builder.Build();
+app.UseAntiforgery();
 
 // Load home page
 app.MapGet("/", (Wiki wiki, Render render) =>
@@ -134,9 +135,8 @@ app.MapGet("/{pageName}", (string pageName, HttpContext context, Wiki wiki, Rend
 });
 
 // Delete a page
-app.MapPost("/delete-page", async (HttpContext context, IAntiforgery antiForgery, Wiki wiki) =>
+app.MapPost("/delete-page", (HttpContext context, Wiki wiki) =>
 {
-    await antiForgery.ValidateRequestAsync(context);
     var id = context.Request.Form["Id"];
 
     if (StringValues.IsNullOrEmpty(id))
@@ -160,9 +160,8 @@ app.MapPost("/delete-page", async (HttpContext context, IAntiforgery antiForgery
     return Results.Redirect("/");
 });
 
-app.MapPost("/delete-attachment", async (HttpContext context, IAntiforgery antiForgery, Wiki wiki) =>
+app.MapPost("/delete-attachment", (HttpContext context, Wiki wiki) =>
 {
-    await antiForgery.ValidateRequestAsync(context);
     var id = context.Request.Form["Id"];
 
     if (StringValues.IsNullOrEmpty(id))
@@ -190,10 +189,9 @@ app.MapPost("/delete-attachment", async (HttpContext context, IAntiforgery antiF
 });
 
 // Add or update a wiki page
-app.MapPost("/{pageName}", async (HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
+app.MapPost("/{pageName}", (HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
 {
     var pageName = context.Request.RouteValues["pageName"] as string ?? "";
-    await antiForgery.ValidateRequestAsync(context);
 
     var input = PageInput.From(context.Request.Form);
 
