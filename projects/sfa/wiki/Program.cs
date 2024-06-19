@@ -34,7 +34,7 @@ app.MapGet("/", (Wiki wiki, Render render) =>
 {
     Page? page = wiki.GetPage(HomePageName);
 
-    if (page is not object)
+    if (page is null)
         return Results.Redirect($"/{HomePageName}");
 
     return Results.Text(render.BuildPage(HomePageName, atBody: () =>
@@ -68,7 +68,7 @@ app.MapGet("/new-page", (string? pageName) =>
 app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
 {
     Page? page = wiki.GetPage(pageName);
-    if (page is not object)
+    if (page is null)
         return Results.NotFound();
 
     return Results.Text(render.BuildEditorPage(pageName,
@@ -95,7 +95,7 @@ app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, Render ren
 app.MapGet("/attachment", (string fileId, Wiki wiki) =>
 {
     var file = wiki.GetFile(fileId);
-    if (file is not object)
+    if (file is null)
       return Results.NotFound();
 
     app!.Logger.LogInformation("Attachment " + file.Value.meta.Id + " - " + file.Value.meta.Filename);
@@ -110,7 +110,7 @@ app.MapGet("/{pageName}", (string pageName, HttpContext context, Wiki wiki, Rend
 
     Page? page = wiki.GetPage(pageName);
 
-    if (page is object)
+    if (page is not null)
     {
         return Results.Text(render.BuildPage(pageName, atBody: () =>
           new[]
@@ -149,7 +149,7 @@ app.MapPost("/delete-page", async (HttpContext context, IAntiforgery antiForgery
 
     var (isOk, exception) = wiki.DeletePage(Convert.ToInt32(id), HomePageName);
 
-    if (!isOk && exception is object)
+    if (!isOk && exception is not null)
         app.Logger.LogError(exception, $"Error in deleting page id {id}");
     else if (!isOk)
         app.Logger.LogError($"Unable to delete page id {id}");
@@ -179,12 +179,12 @@ app.MapPost("/delete-attachment", async (HttpContext context, IAntiforgery antiF
 
     if (!isOk)
     {
-        if (exception is object)
+        if (exception is not null)
             app.Logger.LogError(exception, $"Error in deleting page attachment id {id}");
         else
             app.Logger.LogError($"Unable to delete page attachment id {id}");
 
-        if (page is object)
+        if (page is not null)
             return Results.Redirect($"/{page.Name}");
         else
             return Results.Redirect("/");
@@ -374,7 +374,7 @@ static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiFo
         .Append(Input.Text.Class("uk-input uk-form-width-large").Attribute("placeholder", "Click to select file").ToggleAttribute("disabled", true))
       );
 
-    if (modelState is object && !modelState.IsValid)
+    if (modelState is not null && !modelState.IsValid)
     {
         if (IsFieldOK("Name"))
         {
@@ -405,7 +405,7 @@ static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiFo
                  .Append(contentField)
                  .Append(attachmentField);
 
-    if (input.Id is object)
+    if (input.Id is not null)
     {
         HtmlTag id = Input.Hidden.Name("Id").Value(input.Id.ToString()!);
         form = form.Append(id);
@@ -570,7 +570,7 @@ class Wiki
     {
         var pages = _cache.Get(AllPagesKey) as List<Page>;
 
-        if (pages is object)
+        if (pages is not null)
             return pages;
 
         using var db = new LiteDatabase(GetDbPath());
@@ -622,7 +622,7 @@ class Wiki
                 var res = db.FileStorage.Upload(attachment.FileId, input.Attachment.FileName, stream);
             }
 
-            if (existingPage is not object)
+            if (existingPage is null)
             {
                 var newPage = new Page
                 {
@@ -631,7 +631,7 @@ class Wiki
                     LastModifiedUtc = Timestamp()
                 };
 
-                if (attachment is object)
+                if (attachment is not null)
                     newPage.Attachments.Add(attachment);
 
                 coll.Insert(newPage);
@@ -648,7 +648,7 @@ class Wiki
                     LastModifiedUtc = Timestamp()
                 };
 
-                if (attachment is object)
+                if (attachment is not null)
                     updatedPage.Attachments.Add(attachment);
 
                 coll.Update(updatedPage);
@@ -671,7 +671,7 @@ class Wiki
             using var db = new LiteDatabase(GetDbPath());
             var coll = db.GetCollection<Page>(PageCollectionName);
             var page = coll.FindById(pageId);
-            if (page is not object)
+            if (page is null)
             {
                 _logger.LogWarning($"Delete attachment operation fails because page id {id} cannot be found in the database");
                 return (false, null, null);
@@ -710,7 +710,7 @@ class Wiki
 
             var page = coll.FindById(id);
 
-            if (page is not object)
+            if (page is null)
             {
                 _logger.LogWarning($"Delete operation fails because page id {id} cannot be found in the database");
                 return (false, null);
@@ -749,7 +749,7 @@ class Wiki
         using var db = new LiteDatabase(GetDbPath());
 
         var meta = db.FileStorage.FindById(fileId);
-        if (meta is not object)
+        if (meta is null)
             return null;
 
         using var stream = new MemoryStream();
