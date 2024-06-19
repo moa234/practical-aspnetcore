@@ -220,7 +220,7 @@ app.MapPost("/{pageName}", async (HttpContext context, Wiki wiki, Render render,
     if (!isOk)
     {
         app.Logger.LogError(ex, "Problem in saving page");
-        return Results.Problem("Progblem in saving page");
+        return Results.Problem("Problem in saving page");
     }
 
     return Results.Redirect($"/{p!.Name}");
@@ -627,7 +627,7 @@ class Wiki
                 var newPage = new Page
                 {
                     Name = sanitizer.Sanitize(properName),
-                    Content = input.Content, //Do not sanitize on input because it will impact some markdown tag such as >. We do it on the output instead.
+                    Content = input.Content, //Do not sanitize on input because it will impact some Markdown tag such as >. We do it on the output instead.
                     LastModifiedUtc = Timestamp()
                 };
 
@@ -644,7 +644,7 @@ class Wiki
                 var updatedPage = existingPage with
                 {
                     Name = sanitizer.Sanitize(properName),
-                    Content = input.Content, //Do not sanitize on input because it will impact some markdown tag such as >. We do it on the output instead.
+                    Content = input.Content, //Do not sanitize on input because it will impact some Markdown tag such as >. We do it on the output instead.
                     LastModifiedUtc = Timestamp()
                 };
 
@@ -718,7 +718,7 @@ class Wiki
 
             if (page.Name.Equals(homePageName, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning($"Page id {id}  is a home page and elete operation on home page is not allowed");
+                _logger.LogWarning($"Page id {id}  is a home page and delete operation on home page is not allowed");
                 return (false, null);
             }
 
@@ -734,7 +734,7 @@ class Wiki
                 return (true, null);
             }
 
-            _logger.LogWarning($"Somehow we cannot delete page id {id} and it's a mistery why.");
+            _logger.LogWarning($"Somehow we cannot delete page id {id} and it's a mystery why.");
             return (false, null);
         }
         catch (Exception ex)
