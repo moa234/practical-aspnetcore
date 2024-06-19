@@ -350,8 +350,6 @@ static string RenderPageAttachments(Page page)
 // Build the wiki input form 
 static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiForgery, ModelStateDictionary? modelState = null)
 {
-    bool IsFieldOK(string key) => modelState.ContainsKey(key) && modelState[key]!.ValidationState == ModelValidationState.Invalid;
-
     var antiForgeryField = Input.Hidden.Name(antiForgery.FormFieldName).Value(antiForgery.RequestToken!);
 
     var nameField = Div
@@ -375,7 +373,7 @@ static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiFo
 
     if (modelState is not null && !modelState.IsValid)
     {
-        if (IsFieldOK("Name"))
+        if (IsFieldOk("Name"))
         {
             foreach (var er in modelState["Name"]!.Errors)
             {
@@ -383,7 +381,7 @@ static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiFo
             }
         }
 
-        if (IsFieldOK("Content"))
+        if (IsFieldOk("Content"))
         {
             foreach (var er in modelState["Content"]!.Errors)
             {
@@ -413,6 +411,8 @@ static string BuildForm(PageInput input, string path, AntiforgeryTokenSet antiFo
     form = form.Append(submit);
 
     return form.ToHtmlString();
+
+    bool IsFieldOk(string key) => modelState.ContainsKey(key) && modelState[key]!.ValidationState == ModelValidationState.Invalid;
 }
 
 class Render
