@@ -179,9 +179,9 @@ app.MapPost("/delete-attachment", ([FromForm] string id, [FromForm] string pageI
 
     if (isOk) return Results.Redirect($"/{page!.Name}");
     if (exception is not null)
-        app.Logger.LogError(exception, "Error in deleting page attachment id {id}", id!);
+        app.Logger.LogError(exception, "Error in deleting page attachment id {id}", id);
     else
-        app.Logger.LogError("Unable to delete page attachment id {id}", id!);
+        app.Logger.LogError("Unable to delete page attachment id {id}", id);
 
     return Results.Redirect(page is not null ? $"/{page.Name}" : "/");
 });
@@ -629,7 +629,7 @@ internal class Wiki(IWebHostEnvironment env, IMemoryCache cache, ILogger<Wiki> l
                 );
 
                 using var stream = input.Attachment.OpenReadStream();
-                var res = db.FileStorage.Upload(attachment.FileId, input.Attachment.FileName, stream);
+                var unused = db.FileStorage.Upload(attachment.FileId, input.Attachment.FileName, stream);
             }
 
             if (existingPage is null)
