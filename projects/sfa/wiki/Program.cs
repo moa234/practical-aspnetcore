@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using AngleSharp.Io;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Ganss.Xss;
@@ -8,6 +9,7 @@ using LiteDB;
 using Markdig;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
@@ -135,10 +137,8 @@ app.MapGet("/{pageName}", (string pageName, HttpContext context, Wiki wiki, Rend
 });
 
 // Delete a page
-app.MapPost("/delete-page", (HttpContext context, Wiki wiki) =>
+app.MapPost("/delete-page", ([FromForm] string id, Wiki wiki) =>
 {
-    var id = context.Request.Form["Id"];
-
     if (StringValues.IsNullOrEmpty(id))
     {
         app.Logger.LogWarning("Unable to delete page because form Id is missing");
@@ -150,34 +150,32 @@ app.MapPost("/delete-page", (HttpContext context, Wiki wiki) =>
     switch (isOk)
     {
         case false when exception is not null:
-            app.Logger.LogError(exception, "Error in deleting page id {id}", id!);
+            app.Logger.LogError(exception, "Error in deleting page id {id}", id);
             break;
         case false:
-            app.Logger.LogError("Unable to delete page id {id}", id!);
+            app.Logger.LogError("Unable to delete page id {id}", id);
             break;
     }
 
     return Results.Redirect("/");
 });
 
-app.MapPost("/delete-attachment", (HttpContext context, Wiki wiki) =>
+app.MapPost("/delete-attachment", ([FromForm] string id, [FromForm] string pageId, Wiki wiki) =>
 {
-    var id = context.Request.Form["Id"];
 
     if (StringValues.IsNullOrEmpty(id))
     {
         app.Logger.LogWarning("Unable to delete attachment because form Id is missing");
         return Results.Redirect("/");
     }
-
-    var pageId = context.Request.Form["PageId"];
+    
     if (StringValues.IsNullOrEmpty(pageId))
     {
         app.Logger.LogWarning("Unable to delete attachment because form PageId is missing");
         return Results.Redirect("/");
     }
 
-    var (isOk, page, exception) = wiki.DeleteAttachment(Convert.ToInt32(pageId), id.ToString());
+    var (isOk, page, exception) = wiki.DeleteAttachment(Convert.ToInt32(pageId), id);
 
     if (isOk) return Results.Redirect($"/{page!.Name}");
     if (exception is not null)
@@ -189,12 +187,10 @@ app.MapPost("/delete-attachment", (HttpContext context, Wiki wiki) =>
 });
 
 // Add or update a wiki page
-app.MapPost("/{pageName}", (HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
+app.MapPost("/{pageName}", (IFormCollection inputFormCollection, string pageName,HttpContext context, Wiki wiki, Render render, IAntiforgery antiForgery) =>
 {
-    var pageName = context.Request.RouteValues["pageName"] as string ?? "";
-
-    var input = PageInput.From(context.Request.Form);
-
+    var input = PageInput.From(inputFormCollection);
+    
     var modelState = new ModelStateDictionary();
     var validator = new PageInputValidator(pageName, HomePageName);
     validator.Validate(input).AddToModelState(modelState, null);
