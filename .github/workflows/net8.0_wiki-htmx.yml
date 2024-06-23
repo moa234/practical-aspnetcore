@@ -1,0 +1,74 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - wiki-htmx
+
+on:
+  push:
+    branches:
+      - net8.0
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: get wiki files only
+        run: |
+          New-Item -Path ".\wiki" -ItemType Directory
+          Move-Item -Path ".\projects\sfa\wiki\*" -Destination ".\wiki"
+          Get-ChildItem -Path . -Exclude wiki | Remove-Item -Recurse -Force
+          Move-Item -Path ".\wiki\*" -Destination .
+          Remove-Item -Path ".\wiki" -Recurse -Force
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.x'
+          include-prerelease: true
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v3
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: .net-app
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_7546B984265F4AF19AC5C53B25D09A42 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_732B86260499480CA6BA8B55A116184F }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_966C7AE5297842A0BE6ACA1A893C3A5C }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'wiki-htmx'
+          slot-name: 'Production'
+          package: .
+          
