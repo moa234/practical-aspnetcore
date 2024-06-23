@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
     <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx-ext-loading-states@2.0.0/loading-states.js"></script>
     <style>
         .last-modified {
             font-size: small;
@@ -20,6 +21,9 @@
         a:link {
             color: red;
         }
+        [data-loading] {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -28,12 +32,12 @@
         <div class="uk-navbar">
             <div class="uk-navbar-left">
                 <ul class="uk-navbar-nav">
-                    <li class="uk-active"><a hx-get="/home-page" hx-target="#Content"><span uk-icon="home"></span></a></li>
+                    <li class="uk-active"><a hx-get="/home-page" hx-ext="loading-states" hx-target="#Content"><span uk-icon="home"></span></a></li>
                 </ul>
             </div>
             <div class="uk-navbar-center">
                 <div class="uk-navbar-item">
-                    <form hx-get="/new-page" hx-target="#Content">
+                    <form hx-get="/new-page" hx-target="#Content" hx-ext="loading-states">
                         <label class="uk-form-label" for="pageName">
                             <input id="pageName" class="uk-input uk-form-width-large" type="text" name="pageName"
                                    placeholder="Type desired page title here">
@@ -42,13 +46,16 @@
                     </form>
                 </div>
             </div>
+            <div class="uk-navbar-right">
+                <div uk-spinner data-loading ></div>
+            </div>
         </div>
     </div>
 </nav>
 
-<div class="uk-container">
-    <div uk-grid >
-        <div id="Content" class="uk-width-4-5" hx-get="/home-page" hx-trigger="load"></div>
+<div class="uk-container ">
+    <div uk-grid>
+        <div id="Content" class="uk-width-4-5" hx-get="/home-page" hx-trigger="load" hx-ext="loading-states"></div>
         
         <div class="uk-width-1-5" id="allPages"> <!-- this is the right bar --></div>
     </div>

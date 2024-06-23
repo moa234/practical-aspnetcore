@@ -105,6 +105,7 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
                 .ToHtmlString() +
             A.Attribute("hx-get", $"/edit?pageName={pageName}")
                 .Attribute("hx-target", "#Content")
+                .Attribute("hx-ext","loading-state")
                 .Append("Edit")
                 .ToHtmlString() +
             AllPages(wiki).ToHtmlString()
@@ -207,7 +208,7 @@ static HtmlTag AllPages(Wiki wiki)
         .Append(Span.Class("uk-label").Append("Pages"))
         .Append(Ul.Class("uk-list")
             .Append(wiki.ListAllPages().OrderBy(x => x.Name)
-                .Select(x => Li.Append(A.Attribute("hx-get", x.Name).Attribute("hx-target", "#Content").Append(x.Name)))
+                .Select(x => Li.Append(A.Attribute("hx-get", x.Name).Attribute("hx-target", "#Content").Attribute("hx-ext","loading-states").Append(x.Name)))
             )
         );
 }
@@ -254,6 +255,7 @@ static HtmlTag RenderDeletePageButton(Page page, AntiforgeryTokenSet antiForgery
     var form = Form
         .Attribute("hx-post", "/delete-page")
         .Attribute("hx-target", "#Content")
+        .Attribute("hx-ext","loading-state")
         .Attribute("onsubmit", "return confirm('Please confirm to delete this page');")
         .Append(antiForgeryField)
         .Append(id)
@@ -288,6 +290,7 @@ static string RenderPageAttachmentsForEdit(Page page, AntiforgeryTokenSet antiFo
             .Style("display", "inline")
             .Attribute("hx-post", "/delete-attachment")
             .Attribute("hx-target", "#Content")
+            .Attribute("hx-ext","loading-state")
             .Attribute("onsubmit", "return confirm('Please confirm to delete this attachment');")
             .Append(antiForgeryField)
             .Append(id)
@@ -366,6 +369,7 @@ static string BuildForm(PageInput input, AntiforgeryTokenSet antiForgery,
         .Class("uk-form-stacked")
         .Attribute("hx-post", "/page")
         .Attribute("hx-target", "#Content")
+        .Attribute("hx-ext","loading-state")
         .Attribute("hx-encoding", "multipart/form-data")
         .Append(antiForgeryField)
         .Append(nameField)
