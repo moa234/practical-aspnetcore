@@ -187,7 +187,11 @@ app.MapPost("/page",
         if (!modelState.IsValid)
             return Results.BadRequest(modelState.Select(x => x.Value!.Errors).SelectMany(x => x)
                 .Select(x => x.ErrorMessage));
-
+        // check if page exists
+        var page = wiki.GetPage(pageName);
+        if (page is not null)
+            return Results.BadRequest("Page already exists");
+        
         var (isOk, p, ex) = wiki.SavePage(input);
         if (isOk) return Results.Redirect($"/{p!.Name}");
 
