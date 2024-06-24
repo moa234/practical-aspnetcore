@@ -41,9 +41,17 @@ app.MapGet("/new-page", (string? pageName, Wiki wiki, HttpContext context, IAnti
     var pageWiki = wiki.GetPage(page);
     if (pageWiki is not null)
         return Results.BadRequest("Page already exists");
-
+    
+    var list = Div.Id("allPages").Attribute("hx-swap-oob", "innerHTML");
+    list = list.Append(Br)
+        .Append(Span.Class("uk-label").Append("Pages"))
+        .Append(AllPagesForEditing(wiki));
+    
     return Results.Text(
-        BuildForm(new PageInput(null, page, "", null), antiforgery.GetAndStoreTokens(context)), HtmlMime);
+        BuildForm(new PageInput(null, page, "", null), antiforgery.GetAndStoreTokens(context)) +
+        list.ToHtmlString() +
+        Title.Append(page).ToHtmlString()
+        , HtmlMime);
 
     // Copied from https://www.30secondsofcode.org/c-sharp/s/to-kebab-case
     string ToKebabCase(string str)
@@ -108,7 +116,8 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
                 .Attribute("hx-ext", "loading-state")
                 .Append("Edit")
                 .ToHtmlString() +
-            AllPages(wiki).ToHtmlString()
+            AllPages(wiki).ToHtmlString() +
+            Title.Append(KebabToNormalCase(page.Name)).ToHtmlString()
             , HtmlMime);
 
     return pageName.Equals(HomePageName, StringComparison.OrdinalIgnoreCase)
