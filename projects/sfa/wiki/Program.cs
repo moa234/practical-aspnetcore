@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
+using Htmx;
 using static HtmlBuilders.HtmlTags;
 
 const string DisplayDateFormat = "MMMM dd, yyyy";
@@ -29,7 +30,7 @@ var app = builder.Build();
 app.UseAntiforgery();
 
 // Load home page
-app.MapGet("/", () => Results.File("wiki.html", HtmlMime));
+app.MapGet("/", () => Results.Text(WikiPage(), HtmlMime));
 
 app.MapGet("/new-page", (string? pageName, Wiki wiki, HttpContext context, IAntiforgery antiforgery) =>
 {
@@ -41,12 +42,12 @@ app.MapGet("/new-page", (string? pageName, Wiki wiki, HttpContext context, IAnti
     var pageWiki = wiki.GetPage(page);
     if (pageWiki is not null)
         return Results.BadRequest("Page already exists");
-    
+
     var list = Div.Id("allPages").Attribute("hx-swap-oob", "innerHTML");
     list = list.Append(Br)
         .Append(Span.Class("uk-label").Append("Pages"))
         .Append(AllPagesForEditing(wiki));
-    
+
     return Results.Text(
         BuildForm(new PageInput(null, page, "", null), antiforgery.GetAndStoreTokens(context)) +
         list.ToHtmlString() +
@@ -62,8 +63,11 @@ app.MapGet("/new-page", (string? pageName, Wiki wiki, HttpContext context, IAnti
 });
 
 // Edit a wiki page
-app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, IAntiforgery antiForgery) =>
+app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, IAntiforgery antiForgery, HttpRequest request) =>
 {
+    if (!request.IsHtmx())
+        return Results.Text(WikiPage($"edit?pageName={pageName}"), HtmlMime);
+    
     var page = wiki.GetPage(pageName);
     if (page is null)
         return Results.NotFound($"Page {pageName} not found");
@@ -99,8 +103,12 @@ app.MapGet("/attachment", (string fileId, Wiki wiki) =>
 });
 
 // Load a wiki page
-app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
+app.MapGet("/{pageName}", (string pageName, Wiki wiki, HttpRequest request) =>
 {
+    if (!request.IsHtmx())
+        return Results.Text(WikiPage(pageName), HtmlMime);
+
+
     var page = wiki.GetPage(pageName);
 
     if (page is not null)
@@ -114,6 +122,7 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
             A.Attribute("hx-get", $"/edit?pageName={pageName}")
                 .Attribute("hx-target", "#Content")
                 .Attribute("hx-ext", "loading-state")
+                .Attribute("hx-push-url", "true") 
                 .Append("Edit")
                 .ToHtmlString() +
             AllPages(wiki).ToHtmlString() +
@@ -231,6 +240,7 @@ static HtmlTag AllPages(Wiki wiki)
                                 .Attribute("hx-target", "#Content")
                                 .Attribute("hx-ext", "loading-states")
                                 .Attribute("hx-swap", "innerHTML")
+                                .Attribute("hx-push-url", "true")
                                 .Append(x.Name)
                         )
                     )
@@ -416,6 +426,107 @@ static string BuildForm(PageInput input, AntiforgeryTokenSet antiForgery,
     {
         return modelState.ContainsKey(key) && modelState[key]!.ValidationState == ModelValidationState.Invalid;
     }
+}
+
+static string WikiPage(string page = HomePageName)
+{
+    return $$"""
+             <!DOCTYPE html>
+             <html lang="en">
+             <head>
+                 <meta charset="utf-8">
+                 <meta name="viewport" content="width=device-width, initial-scale=1">
+                 <title>home-page</title>
+                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.19.4/dist/css/uikit.min.css"/>
+                 <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+                 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+                 <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
+                 <script src="https://unpkg.com/htmx-ext-loading-states@2.0.0/loading-states.js"></script>
+                 <style>
+                     .last-modified {
+                         font-size: small;
+                     }
+             
+                     a:visited {
+                         color: blue;
+                     }
+             
+                     a:link {
+                         color: red;
+                     }
+                     [data-loading] {
+                         display: none;
+                     }
+                 </style>
+             </head>
+             <body>
+             <nav class="uk-navbar-container">
+                 <div class="uk-container">
+                     <div class="uk-navbar">
+                         <div class="uk-navbar-left">
+                             <ul class="uk-navbar-nav">
+                                 <li class="uk-active"><a hx-get="/home-page" hx-push-url="/" hx-ext="loading-states" hx-target="#Content"><span uk-icon="home"></span></a></li>
+                             </ul>
+                         </div>
+                         <div class="uk-navbar-center">
+                             <div class="uk-navbar-item">
+                                 <form hx-get="/new-page" hx-target="#Content" hx-ext="loading-states">
+                                     <label class="uk-form-label" for="pageName">
+                                         <input id="pageName" class="uk-input uk-form-width-large" type="text" name="pageName"
+                                                placeholder="Type desired page title here">
+                                     </label>
+                                     <input type="submit" class="uk-button uk-button-default" value="Add New Page">
+                                 </form>
+                             </div>
+                         </div>
+                         <div class="uk-navbar-right">
+                             <div uk-spinner data-loading ></div>
+                         </div>
+                     </div>
+                 </div>
+             </nav>
+
+             <div class="uk-container " hx-get="/{{page}}" hx-trigger="load once" hx-ext="loading-states" hx-target="#Content">
+                 <div uk-grid hx-history-elt>
+                     <div id="Content" class="uk-width-4-5"></div>
+                     
+                     <div class="uk-width-1-5" id="allPages" hx-get="/all-pages" hx-trigger="every 1m [!isEditing()]" hx-swap="none"></div>
+                 </div>
+             </div>
+
+
+             <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.4/dist/js/uikit.min.js"></script>
+             <script src="https://cdn.jsdelivr.net/npm/uikit@3.19.4/dist/js/uikit-icons.min.js"></script>
+             <script>
+                 var easyMDE;
+                 
+                 document.addEventListener("htmx:afterRequest", function (event) {
+                     if (event.detail.xhr.status >= 400) {
+                         UIkit.notification(event.detail.xhr.responseText, {status: 'danger'});
+                         return;
+                     }
+                     if (event.detail.pathInfo.responsePath.includes("/new-page") || event.detail.pathInfo.responsePath.includes("/edit")) {
+                         easyMDE = new EasyMDE({
+                             insertTexts: {
+                                 link: ["[", "]()"]
+                             }
+                         });
+                     }
+                 });
+             
+                 function copyMarkdownLink(element) {
+                     element.select();
+                     document.execCommand("copy");
+                 }
+                 
+                 function isEditing() {
+                     return document.getElementById("Content").querySelector("form") !== null;
+                 }
+             </script>
+
+             </body>
+             </html>
+             """;
 }
 
 internal class Wiki(IWebHostEnvironment env, IMemoryCache cache, ILogger<Wiki> logger)
