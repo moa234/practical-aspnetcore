@@ -57,7 +57,7 @@
     <div uk-grid>
         <div id="Content" class="uk-width-4-5" hx-get="/home-page" hx-trigger="load" hx-ext="loading-states"></div>
         
-        <div class="uk-width-1-5" id="allPages"> <!-- this is the right bar --></div>
+        <div class="uk-width-1-5" id="allPages" hx-get="/all-pages" hx-trigger="every 1m" hx-swap="none"></div>
     </div>
 </div>
 

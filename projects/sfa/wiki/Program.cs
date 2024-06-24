@@ -105,7 +105,7 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
                 .ToHtmlString() +
             A.Attribute("hx-get", $"/edit?pageName={pageName}")
                 .Attribute("hx-target", "#Content")
-                .Attribute("hx-ext","loading-state")
+                .Attribute("hx-ext", "loading-state")
                 .Append("Edit")
                 .ToHtmlString() +
             AllPages(wiki).ToHtmlString()
@@ -120,6 +120,8 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki) =>
         return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(txt.Replace('-', ' '));
     }
 });
+
+app.MapGet("/all-pages", (Wiki wiki) => Results.Text(AllPages(wiki).ToHtmlString(), HtmlMime));
 
 // Delete a page
 app.MapPost("/delete-page", ([FromForm] string id, Wiki wiki) =>
@@ -189,9 +191,9 @@ app.MapPost("/page",
                 .Select(x => x.ErrorMessage));
         // check if page exists
         var page = wiki.GetPage(pageName);
-        if (page is not null)
-            return Results.BadRequest("Page already exists");
-        
+        if (page is not null && page.Id != input.Id)
+            return Results.BadRequest("Page already exists refresh the page to edit it");
+
         var (isOk, p, ex) = wiki.SavePage(input);
         if (isOk) return Results.Redirect($"/{p!.Name}");
 
@@ -207,12 +209,22 @@ return;
 
 static HtmlTag AllPages(Wiki wiki)
 {
-    return Div.Id("allPages").Attribute("hx-swap-oob", "innerHTML")
+    return Div.Id("allPages")
+        .Attribute("hx-swap-oob", "innerHTML")
         .Class("uk-width-1-5")
         .Append(Span.Class("uk-label").Append("Pages"))
         .Append(Ul.Class("uk-list")
-            .Append(wiki.ListAllPages().OrderBy(x => x.Name)
-                .Select(x => Li.Append(A.Attribute("hx-get", x.Name).Attribute("hx-target", "#Content").Attribute("hx-ext","loading-states").Append(x.Name)))
+            .Append(
+                wiki.ListAllPages()
+                    .OrderBy(x => x.Name)
+                    .Select(x => Li.Append(
+                            A.Attribute("hx-get", x.Name)
+                                .Attribute("hx-target", "#Content")
+                                .Attribute("hx-ext", "loading-states")
+                                .Attribute("hx-swap", "innerHTML")
+                                .Append(x.Name)
+                        )
+                    )
             )
         );
 }
@@ -259,7 +271,8 @@ static HtmlTag RenderDeletePageButton(Page page, AntiforgeryTokenSet antiForgery
     var form = Form
         .Attribute("hx-post", "/delete-page")
         .Attribute("hx-target", "#Content")
-        .Attribute("hx-ext","loading-state")
+        .Attribute("hx-ext", "loading-state")
+        .Attribute("hx-swap", "innerHTML")
         .Attribute("onsubmit", "return confirm('Please confirm to delete this page');")
         .Append(antiForgeryField)
         .Append(id)
@@ -294,7 +307,7 @@ static string RenderPageAttachmentsForEdit(Page page, AntiforgeryTokenSet antiFo
             .Style("display", "inline")
             .Attribute("hx-post", "/delete-attachment")
             .Attribute("hx-target", "#Content")
-            .Attribute("hx-ext","loading-state")
+            .Attribute("hx-ext", "loading-state")
             .Attribute("onsubmit", "return confirm('Please confirm to delete this attachment');")
             .Append(antiForgeryField)
             .Append(id)
@@ -373,7 +386,7 @@ static string BuildForm(PageInput input, AntiforgeryTokenSet antiForgery,
         .Class("uk-form-stacked")
         .Attribute("hx-post", "/page")
         .Attribute("hx-target", "#Content")
-        .Attribute("hx-ext","loading-state")
+        .Attribute("hx-ext", "loading-state")
         .Attribute("hx-encoding", "multipart/form-data")
         .Append(antiForgeryField)
         .Append(nameField)
