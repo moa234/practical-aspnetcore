@@ -292,7 +292,7 @@ static HtmlTag RenderDeletePageButton(Page page, AntiforgeryTokenSet antiForgery
         .Attribute("hx-target", "#Content")
         .Attribute("hx-ext", "loading-state")
         .Attribute("hx-swap", "innerHTML")
-        .Attribute("onsubmit", "return confirm('Please confirm to delete this page');")
+        .Attribute("hx-confirm", "Please confirm to delete this page")
         .Append(antiForgeryField)
         .Append(id)
         .Append(submit);
@@ -327,7 +327,7 @@ static string RenderPageAttachmentsForEdit(Page page, AntiforgeryTokenSet antiFo
             .Attribute("hx-post", "/delete-attachment")
             .Attribute("hx-target", "#Content")
             .Attribute("hx-ext", "loading-state")
-            .Attribute("onsubmit", "return confirm('Please confirm to delete this attachment');")
+            .Attribute("hx-confirm", "Please confirm to delete this attachment")
             .Append(antiForgeryField)
             .Append(id)
             .Append(name)
