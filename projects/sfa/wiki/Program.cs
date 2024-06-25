@@ -469,15 +469,13 @@ static string WikiPage(string page = HomePageName)
                              </ul>
                          </div>
                          <div class="uk-navbar-center">
-                             <div class="uk-navbar-item">
-                                 <form hx-get="/new-page" hx-target="#Content" hx-ext="loading-states">
+                                 <form class="uk-navbar-item" hx-get="/new-page" hx-target="#Content" hx-ext="loading-states">
                                      <label class="uk-form-label" for="pageName">
-                                         <input id="pageName" class="uk-input uk-form-width-large" type="text" name="pageName"
+                                         <input id="pageName" class="uk-input uk-width-large@m uk-width-1-1" type="text" name="pageName"
                                                 placeholder="Type desired page title here">
                                      </label>
-                                     <input type="submit" class="uk-button uk-button-default" value="Add New Page">
+                                     <input type="submit" class="uk-button uk-button-default uk-width-1-4 uk-padding-small uk-padding-remove-vertical" value="Add">
                                  </form>
-                             </div>
                          </div>
                          <div class="uk-navbar-right">
                              <div uk-spinner data-loading ></div>
@@ -488,9 +486,9 @@ static string WikiPage(string page = HomePageName)
 
              <div class="uk-container " hx-get="/{{page}}" hx-trigger="load once" hx-ext="loading-states" hx-target="#Content">
                  <div uk-grid hx-history-elt>
-                     <div id="Content" class="uk-width-4-5"></div>
-                     
-                     <div class="uk-width-1-5" id="allPages" hx-get="/all-pages" hx-trigger="every 1m [!isEditing()]" hx-swap="none"></div>
+                     <div id="Content" class="uk-width-4-5@s uk-width-1-1"></div>
+                     <hr class="uk-width-1-1 uk-hidden@s uk-visible" />
+                     <div  class="uk-width-1-5@s uk-width-1-1 uk-flex-left uk-flex uk-flex-column" id="allPages" hx-get="/all-pages" hx-trigger="every 1m [!isEditing()]" hx-swap="none"></div>
                  </div>
              </div>
 
