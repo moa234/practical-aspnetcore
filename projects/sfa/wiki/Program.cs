@@ -67,7 +67,7 @@ app.MapGet("/edit", (string pageName, HttpContext context, Wiki wiki, IAntiforge
 {
     if (!request.IsHtmx())
         return Results.Text(WikiPage($"edit?pageName={pageName}"), HtmlMime);
-    
+
     var page = wiki.GetPage(pageName);
     if (page is null)
         return Results.NotFound($"Page {pageName} not found");
@@ -122,7 +122,7 @@ app.MapGet("/{pageName}", (string pageName, Wiki wiki, HttpRequest request) =>
             A.Attribute("hx-get", $"/edit?pageName={pageName}")
                 .Attribute("hx-target", "#Content")
                 .Attribute("hx-ext", "loading-state")
-                .Attribute("hx-push-url", "true") 
+                .Attribute("hx-push-url", "true")
                 .Append("Edit")
                 .ToHtmlString() +
             AllPages(wiki).ToHtmlString() +
@@ -357,7 +357,24 @@ static string RenderPageAttachments(Page page)
     var list = Ul.Class("uk-list uk-list-disc");
     list = page.Attachments.Aggregate(list,
         (current, attachment) =>
-            current.Append(Li.Append(A.Href($"/attachment?fileId={attachment.FileId}").Append(attachment.FileName))));
+        {
+            if (!attachment.MimeType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
+            {
+                current = current.Append(Li.Append(A.Href($"/attachment?fileId={attachment.FileId}").Append(attachment.FileName)));
+                return current;
+            }
+            current = current.Append(Li.Append(A.Href($"#{attachment.FileName.Split(".")[0]}").Attribute("uk-toggle","").Append(attachment.FileName)));
+            current = current.Append(Div.Id(attachment.FileName.Split(".")[0])
+                .Attribute("uk-modal", "")
+                .Append(Div.Class("uk-modal-dialog uk-modal-body")
+                    .Append(H2.Class("uk-modal-title").Append(attachment.FileName))
+                    .Append(Img.Class("uk-width-1-1").Attribute("src", $"/attachment?fileId={attachment.FileId}").Attribute("loading", "lazy"))
+                    .Append(Button.Class("uk-modal-close uk-button uk-button-default uk-margin-small-top").Append("Close"))
+                ));
+            
+            return current;
+
+        });
 
     return label.ToHtmlString() + list.ToHtmlString();
 }
@@ -407,6 +424,7 @@ static string BuildForm(PageInput input, AntiforgeryTokenSet antiForgery,
         .Attribute("hx-target", "#Content")
         .Attribute("hx-ext", "loading-state")
         .Attribute("hx-encoding", "multipart/form-data")
+        .Attribute("hx-push-url", $"/{input.Name}")
         .Append(antiForgeryField)
         .Append(nameField)
         .Append(contentField)
