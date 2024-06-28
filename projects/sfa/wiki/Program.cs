@@ -271,8 +271,8 @@ static HtmlTag AllPagesForEditing(Wiki wiki)
 static string RenderMarkdown(string str)
 {
     var sanitizer = new HtmlSanitizer();
-    return sanitizer.Sanitize(Markdown.ToHtml(str,
-        new MarkdownPipelineBuilder().UseSoftlineBreakAsHardlineBreak().UseAdvancedExtensions().Build()));
+    return Markdown.ToHtml(str,
+        new MarkdownPipelineBuilder().UseSoftlineBreakAsHardlineBreak().UseGenericAttributes().UseAdvancedExtensions().Build());
 }
 
 static string RenderPageContent(Page page)
@@ -338,9 +338,18 @@ static string RenderPageAttachmentsForEdit(Page page, AntiforgeryTokenSet antiFo
 
     HtmlTag CreateEditorHelper(Attachment attachment)
     {
+        if (!attachment.MimeType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
+            return Span.Class("uk-inline")
+                .Append(Span.Class("uk-form-icon").Attribute("uk-icon", "icon: copy"))
+                .Append(Input.Text.Value($"[{attachment.FileName}](/attachment?fileId={attachment.FileId})")
+                    .Class("uk-input uk-form-small uk-form-width-large")
+                    .Style("cursor", "pointer")
+                    .Attribute("onclick", "copyMarkdownLink(this);")
+                );
+                    
         return Span.Class("uk-inline")
             .Append(Span.Class("uk-form-icon").Attribute("uk-icon", "icon: copy"))
-            .Append(Input.Text.Value($"[{attachment.FileName}](/attachment?fileId={attachment.FileId})")
+            .Append(Input.Text.Value($"[{attachment.FileName}](#{attachment.FileName.Split(".")[0]}){{uk-toggle}}")
                 .Class("uk-input uk-form-small uk-form-width-large")
                 .Style("cursor", "pointer")
                 .Attribute("onclick", "copyMarkdownLink(this);")
