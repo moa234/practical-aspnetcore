@@ -271,8 +271,9 @@ static HtmlTag AllPagesForEditing(Wiki wiki)
 static string RenderMarkdown(string str)
 {
     var sanitizer = new HtmlSanitizer();
-    return Markdown.ToHtml(str,
-        new MarkdownPipelineBuilder().UseSoftlineBreakAsHardlineBreak().UseGenericAttributes().UseAdvancedExtensions().Build());
+    sanitizer.AllowedAttributes.Add("uk-toggle");
+    return sanitizer.Sanitize(Markdown.ToHtml(str,
+        new MarkdownPipelineBuilder().UseSoftlineBreakAsHardlineBreak().UseGenericAttributes().UseAdvancedExtensions().Build()));
 }
 
 static string RenderPageContent(Page page)
@@ -367,12 +368,20 @@ static string RenderPageAttachments(Page page)
     list = page.Attachments.Aggregate(list,
         (current, attachment) =>
         {
+            if (attachment.MimeType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
+                return current.Append(Li.Append(A.Href($"#{attachment.FileName.Split(".")[0]}")
+                    .Attribute("uk-toggle", "").Append(attachment.FileName)));
+            
+            return current.Append(Li.Append(A.Href($"/attachment?fileId={attachment.FileId}").Append(attachment.FileName)));
+        });
+
+    var modals = Div;
+    modals = page.Attachments.Aggregate(modals,
+        (current, attachment) =>
+        {
             if (!attachment.MimeType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
-            {
-                current = current.Append(Li.Append(A.Href($"/attachment?fileId={attachment.FileId}").Append(attachment.FileName)));
                 return current;
-            }
-            current = current.Append(Li.Append(A.Href($"#{attachment.FileName.Split(".")[0]}").Attribute("uk-toggle","").Append(attachment.FileName)));
+
             current = current.Append(Div.Id(attachment.FileName.Split(".")[0])
                 .Attribute("uk-modal", "")
                 .Append(Div.Class("uk-modal-dialog uk-modal-body")
@@ -380,12 +389,11 @@ static string RenderPageAttachments(Page page)
                     .Append(Img.Class("uk-width-1-1").Attribute("src", $"/attachment?fileId={attachment.FileId}").Attribute("loading", "lazy"))
                     .Append(Button.Class("uk-modal-close uk-button uk-button-default uk-margin-small-top").Append("Close"))
                 ));
-            
-            return current;
 
+            return current;
         });
 
-    return label.ToHtmlString() + list.ToHtmlString();
+    return label.ToHtmlString() + list.ToHtmlString() + modals.ToHtmlString();
 }
 
 // Build the wiki input form 
