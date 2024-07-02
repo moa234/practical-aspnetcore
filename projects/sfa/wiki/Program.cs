@@ -559,9 +559,14 @@ internal class Wiki(IWebHostEnvironment env, IMemoryCache cache, ILogger<Wiki> l
     }
 
     // Get the location of the LiteDB file.
-    private string GetDbPath()
+    private ConnectionString GetDbPath()
     {
-        return Path.Combine(env.ContentRootPath, "wiki.db");
+        ConnectionString connectionString = new()
+        {
+            Connection = ConnectionType.Shared,
+            Filename = Path.Combine(env.ContentRootPath, "wiki.db")
+        };
+        return connectionString;
     }
 
     // List all the available wiki pages. It is cached for 30 minutes.
